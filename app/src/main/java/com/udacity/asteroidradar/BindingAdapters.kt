@@ -2,7 +2,39 @@ package com.udacity.asteroidradar
 
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.net.toUri
 import androidx.databinding.BindingAdapter
+import com.bumptech.glide.Glide
+
+//@BindingAdapter("nameText")
+//fun TextView.bindTextViewToDisplayName(item : Asteroid?) {
+//    item?.let {
+//        text = item.codename
+//    }
+//}
+//
+//@BindingAdapter("dateText")
+//fun TextView.bindTextViewToDisplayDate(item : Asteroid?) {
+//    item?.let {
+//        text = item.closeApproachDate
+//    }
+//}
+
+@BindingAdapter("imageUrl")
+fun bindPictureofDay(imageView: ImageView, imgUrl: String?){
+    imgUrl?.let {
+        val imgUri = it.toUri().buildUpon().scheme("https").build()
+        Glide.with(imageView.context).load(imgUri).into(imageView)
+    }
+}
+
+@BindingAdapter("imageName")
+fun bindImageName(textView: TextView, name: String?) {
+    name?.let {
+        val context = textView.context
+        textView.text = name
+    }
+}
 
 @BindingAdapter("statusIcon")
 fun bindAsteroidStatusImage(imageView: ImageView, isHazardous: Boolean) {

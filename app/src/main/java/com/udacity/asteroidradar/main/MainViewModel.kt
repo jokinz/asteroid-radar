@@ -3,66 +3,79 @@ package com.udacity.asteroidradar.main
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.*
+import com.udacity.asteroidradar.PictureOfDay
 import com.udacity.asteroidradar.asteroid.Asteroid
-import com.udacity.asteroidradar.api.parseAsteroidsJsonResult
-import com.udacity.asteroidradar.database.AsteroidDatabaseDao
+import com.udacity.asteroidradar.asteroid.DatabaseAsteroid
+import com.udacity.asteroidradar.database.getInstance
 import com.udacity.asteroidradar.network.AsteroidApi
-import kotlinx.coroutines.Dispatchers
+import com.udacity.asteroidradar.repository.AsteroidRepository
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 
-class MainViewModel (val database : AsteroidDatabaseDao, application: Application): AndroidViewModel(application) {
+class MainViewModel(application: Application): AndroidViewModel(application) {
+    private val _pictureOfDay = MutableLiveData<PictureOfDay>()
+    val pictureOfDay: LiveData<PictureOfDay>
+        get() = _pictureOfDay
+
 //class MainViewModel : ViewModel() {
+//    private val _asteroidList = MutableLiveData<List<Asteroid>>()
+//
+//    val asteroidList: LiveData<List<Asteroid>>
+//        get() = _asteroidList
 
-    private val _response = MutableLiveData<String>()
-    val response: LiveData<String>
-        get() = _response
+    val database = getInstance(application)
+    val asteroidRepository = AsteroidRepository(database)
 
-    private val _asteroidsList = MutableLiveData<List<Asteroid>>()
-    val asteroidsList: LiveData<List<Asteroid>>
-        get() = _asteroidsList
-
-    val asteroids = database.getAllAsteroids()
 
     init {
-        getAsteroids()
-        getImageOfTheDay()
-    }
-
-
-    private fun getAsteroids() {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                var listResult = parseAsteroidsJsonResult(JSONObject(AsteroidApi.retrofitService.getAsteroidString()))
-//                Log.i("getAsteroids", "JSON: " + AsteroidApi.retrofitService.getProperties())
-                Log.i("getAsteroids", "Internet list size: " + listResult.size)
-//                database.clear()
-                saveAsteroidInDatabase(listResult)
-                Log.i("getAsteroids", "Database list size: " + database.getCount())
-            } catch (e: Exception) {
-//                _response.value = "failed"
-//                Log.i("getAsteroids", "String: " + response.raw().request().url())
-                Log.i("getAsteroids", "Failed: " + e.message)
-            }
-        }
-    }
-
-    private suspend fun saveAsteroidInDatabase(listResult: ArrayList<Asteroid>) {
-        for (item in listResult) {
-            database.insert(item)
-//            Log.i("getAsteroidsLoop", item.codename)
-        }
-    }
-
-    private fun getImageOfTheDay(){
         viewModelScope.launch {
+            asteroidRepository.refreshAsteroids()
             try {
                 var picture = AsteroidApi.retrofitService.getPictureOfDayString()
-                Log.i("getImage", "Image data: " + picture)
+                Log.i("getImage", "Image data: " + picture.url)
+                _pictureOfDay.value = picture
             }catch (e: Exception){
                 Log.i("getImage", "Error: " + e.message)
-
             }
         }
+
+//        getImageOfTheDay()
     }
+    val asteroidList = asteroidRepository.asteroids
+
+
+//    private fun getAsteroids() {
+//        viewModelScope.launch(Dispatchers.IO) {
+//            try {
+//                var listResult = AsteroidApi.retrofitService.getAsteroidList().await()
+//                _asteroidList.postValue(listResult.asDomainModel())
+//            } catch (e: Exception) {
+//            }
+//        }
+//    }
+
+
+//    private fun getImageOfTheDay(){
+//        viewModelScope.launch {
+//            try {
+//                var picture = AsteroidApi.retrofitService.getPictureOfDayString()
+//                Log.i("getImage", "Image data: " + picture.url)
+//                _pictureOfDay.value = picture
+//            }catch (e: Exception){
+//                Log.i("getImage", "Error: " + e.message)
+//            }
+//        }
+//    }
+
+    private val _triggerDetails = MutableLiveData<DatabaseAsteroid>()
+    val triggerDetails
+        get() = _triggerDetails
+
+    fun onAsteroidClick(asteroid: DatabaseAsteroid){
+        _triggerDetails.value = asteroid
+    }
+
+    fun onAsteroidClicked() {
+        _triggerDetails.value = null
+    }
+
 }
